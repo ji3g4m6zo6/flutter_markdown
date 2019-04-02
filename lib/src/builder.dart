@@ -296,7 +296,7 @@ class MarkdownBuilder implements md.NodeVisitor {
         // create an image widget for this image
         current.children.add(_buildImage(element.attributes['src']));
       } else if (tag == 'a') {
-        _linkHandlers.removeLast();
+//        _linkHandlers.removeLast();
       }
 
       if (current.children.isNotEmpty) {
