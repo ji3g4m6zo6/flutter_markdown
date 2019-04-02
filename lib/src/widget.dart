@@ -16,11 +16,13 @@ import 'style_sheet.dart';
 ///
 /// Used by [MarkdownWidget.onTapLink].
 typedef void MarkdownTapLinkCallback(String href);
+typedef void TextOnClickCallBack(String text);
 
 /// Creates a format [TextSpan] given a string.
 ///
 /// Used by [MarkdownWidget] to highlight the contents of `pre` elements.
-abstract class SyntaxHighlighter { // ignore: one_member_abstracts
+abstract class SyntaxHighlighter {
+  // ignore: one_member_abstracts
   /// Returns the formated [TextSpan] for the given string.
   TextSpan format(String source);
 }
@@ -41,13 +43,15 @@ abstract class MarkdownWidget extends StatefulWidget {
   /// The [data] argument must not be null.
   const MarkdownWidget({
     Key key,
+    @required this.onTapped,
     @required this.data,
     this.styleSheet,
     this.syntaxHighlighter,
     this.onTapLink,
     this.imageDirectory,
-  }) : assert(data != null),
-       super(key: key);
+  })
+      : assert(data != null),
+        super(key: key);
 
   /// The Markdown to display.
   final String data;
@@ -56,6 +60,7 @@ abstract class MarkdownWidget extends StatefulWidget {
   ///
   /// If null, the styles are inferred from the current [Theme].
   final MarkdownStyleSheet styleSheet;
+  final TextOnClickCallBack onTapped;
 
   /// The syntax highlighter used to color text in `pre` elements.
   ///
@@ -77,7 +82,8 @@ abstract class MarkdownWidget extends StatefulWidget {
   _MarkdownWidgetState createState() => new _MarkdownWidgetState();
 }
 
-class _MarkdownWidgetState extends State<MarkdownWidget> implements MarkdownBuilderDelegate {
+class _MarkdownWidgetState extends State<MarkdownWidget>
+    implements MarkdownBuilderDelegate {
   List<Widget> _children;
   final List<GestureRecognizer> _recognizers = <GestureRecognizer>[];
 
@@ -102,7 +108,8 @@ class _MarkdownWidgetState extends State<MarkdownWidget> implements MarkdownBuil
   }
 
   void _parseMarkdown() {
-    final MarkdownStyleSheet styleSheet = widget.styleSheet ?? new MarkdownStyleSheet.fromTheme(Theme.of(context));
+    final MarkdownStyleSheet styleSheet = widget.styleSheet ??
+        new MarkdownStyleSheet.fromTheme(Theme.of(context));
 
     _disposeRecognizers();
 
@@ -110,6 +117,9 @@ class _MarkdownWidgetState extends State<MarkdownWidget> implements MarkdownBuil
     final List<String> lines = widget.data.replaceAll('\r\n', '\n').split('\n');
     final md.Document document = new md.Document(encodeHtml: false);
     final MarkdownBuilder builder = new MarkdownBuilder(
+      onTapped: (text) {
+        widget.onTapped(text);
+      },
       delegate: this,
       styleSheet: styleSheet,
       imageDirectory: widget.imageDirectory,
@@ -120,7 +130,8 @@ class _MarkdownWidgetState extends State<MarkdownWidget> implements MarkdownBuil
   void _disposeRecognizers() {
     if (_recognizers.isEmpty)
       return;
-    final List<GestureRecognizer> localRecognizers = new List<GestureRecognizer>.from(_recognizers);
+    final List<GestureRecognizer> localRecognizers = new List<
+        GestureRecognizer>.from(_recognizers);
     _recognizers.clear();
     for (GestureRecognizer recognizer in localRecognizers)
       recognizer.dispose();
@@ -130,9 +141,9 @@ class _MarkdownWidgetState extends State<MarkdownWidget> implements MarkdownBuil
   GestureRecognizer createLink(String href) {
     final TapGestureRecognizer recognizer = new TapGestureRecognizer()
       ..onTap = () {
-      if (widget.onTapLink != null)
-        widget.onTapLink(href);
-    };
+        if (widget.onTapLink != null)
+          widget.onTapLink(href);
+      };
     _recognizers.add(recognizer);
     return recognizer;
   }
@@ -160,6 +171,7 @@ class _MarkdownWidgetState extends State<MarkdownWidget> implements MarkdownBuil
 class MarkdownBody extends MarkdownWidget {
   /// Creates a non-scrolling widget that parses and displays Markdown.
   const MarkdownBody({
+    @required this.onTapped,
     Key key,
     String data,
     MarkdownStyleSheet styleSheet,
@@ -173,8 +185,9 @@ class MarkdownBody extends MarkdownWidget {
     syntaxHighlighter: syntaxHighlighter,
     onTapLink: onTapLink,
     imageDirectory: imageDirectory,
+    onTapped: onTapped,
   );
-
+  final TextOnClickCallBack onTapped;
   @override
   Widget build(BuildContext context, List<Widget> children) {
     if (children.length == 1)
@@ -203,6 +216,7 @@ class Markdown extends MarkdownWidget {
     MarkdownStyleSheet styleSheet,
     SyntaxHighlighter syntaxHighlighter,
     MarkdownTapLinkCallback onTapLink,
+    TextOnClickCallBack onTapped,
     Directory imageDirectory,
     this.padding: const EdgeInsets.all(16.0),
   }) : super(
@@ -212,6 +226,7 @@ class Markdown extends MarkdownWidget {
     syntaxHighlighter: syntaxHighlighter,
     onTapLink: onTapLink,
     imageDirectory: imageDirectory,
+    onTapped: onTapped,
   );
 
   /// The amount of space by which to inset the children.
@@ -219,6 +234,6 @@ class Markdown extends MarkdownWidget {
 
   @override
   Widget build(BuildContext context, List<Widget> children) {
-    return new ListView(padding: padding, children: children);
+    return ListView(padding: padding, children: children);
   }
 }
