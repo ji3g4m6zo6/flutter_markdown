@@ -29,7 +29,9 @@ final Set<String> _kBlockTags = new Set<String>.from(<String>[
 ]);
 
 const List<String> _kListTags = const <String>['ul', 'ol'];
+
 typedef void TextOnClickCallBack2(String text);
+
 bool _isBlockTag(String tag) => _kBlockTags.contains(tag);
 
 bool _isListTag(String tag) => _kListTags.contains(tag);
@@ -88,7 +90,8 @@ abstract class MarkdownBuilderDelegate {
 ///  * [Markdown], which is a widget that parses and displays Markdown.
 class MarkdownBuilder implements md.NodeVisitor {
   /// Creates an object that builds a [Widget] tree from parsed Markdown.
-  MarkdownBuilder({@required this.onTapped, this.delegate, this.styleSheet, this.imageDirectory });
+  MarkdownBuilder(
+      {@required this.onTapped, this.delegate, this.styleSheet, this.imageDirectory });
 
   /// A delegate that controls how link and `pre` elements behave.
   final MarkdownBuilderDelegate delegate;
@@ -140,12 +143,40 @@ class MarkdownBuilder implements md.NodeVisitor {
         style: _inlines.last.style,
         text: s,
         recognizer: new TapGestureRecognizer()
-          ..onTap = () => onTapped(s),
+          ..onTap = () {
+            onTapped(s);
+          },
 //      recognizer: _linkHandlers.isNotEmpty ? _linkHandlers.last : null,
       );
 
       _inlines.last.children.add(new RichText(text: span));
     }
+
+//    if (!text.text.contains(' ')) {
+//      final TextSpan span = _blocks.last.tag == 'pre'
+//          ? delegate.formatText(styleSheet, text.text)
+//          : new TextSpan(
+//        style: _inlines.last.style,
+//        text: text.text,
+//        recognizer: _linkHandlers.isNotEmpty && _linkHandlers.length > 0 ? _linkHandlers.last : null,
+//      );
+//      _inlines.last.children.add(new RichText(text: span));
+//    } else {
+//      for (String s in text.text.split(' ')) {
+//        s = s + ' ';
+//        final TextSpan span = _blocks.last.tag == 'pre'
+//            ? delegate.formatText(styleSheet, s)
+//            : new TextSpan(
+//          style: _inlines.last.style,
+//          text: s,
+//          recognizer: new TapGestureRecognizer()
+//            ..onTap = () => onTapped(s),
+////      recognizer: _linkHandlers.isNotEmpty ? _linkHandlers.last : null,
+//        );
+//
+//        _inlines.last.children.add(new RichText(text: span));
+//      }
+//    }
 
 
 //    _inlines.last.children.add(new InkWell(
@@ -394,11 +425,29 @@ class MarkdownBuilder implements md.NodeVisitor {
         List<TextSpan> children = previous.text.children != null
             ? new List.from(previous.text.children)
             : [previous.text];
-        children.add(child.text);
+        TextSpan inLineTextSpan = TextSpan(text: child.text.text,
+            style: child.text.style,
+            children: child.text.children,
+            recognizer: new TapGestureRecognizer()
+              ..onTap = () {
+                onTapped(child.text.text);
+              });
+        children.add(inLineTextSpan);
         TextSpan mergedSpan = new TextSpan(children: children);
         mergedTexts.add(new RichText(text: mergedSpan));
       } else {
-        mergedTexts.add(child);
+        if (child is RichText) {
+          TextSpan inLineTextSpan = TextSpan(text: child.text.text,
+              style: child.text.style,
+              recognizer: new TapGestureRecognizer()
+                ..onTap = () {
+                  onTapped(child.text.text);
+                });
+          RichText richTextWithOutChildren = RichText(text: inLineTextSpan,);
+          mergedTexts.add(richTextWithOutChildren);
+        } else {
+          mergedTexts.add(child);
+        }
       }
     }
     return mergedTexts;
